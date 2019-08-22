@@ -1,9 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { withFormik, Form, Field } from "formik";
 import axios from "axios";
 import * as Yup from "yup";
 
-function OnboardingForm({ values, errors, touched }) {
+function OnboardingForm({ values, errors, touched, status, addUser }) {
+  useEffect(() => {
+    if (status) {
+      addUser(status);
+    }
+  }, [status]);
   return (
     <Form>
       <div>
@@ -18,16 +23,20 @@ function OnboardingForm({ values, errors, touched }) {
         {touched.password && errors.password && <p>{errors.password}</p>}
         <Field type="password" name="password" placeholder="Password" />
       </div>
-      <label>
-        <Field type="checkbox" name="tos" checked={values.tos} />
-        Accept TOS
-      </label>
-      <button>Sign up!</button>
+      <div>
+        {touched.tos && errors.tos && <p>{errors.tos}</p>}
+
+        <label>
+          <Field type="checkbox" name="tos" checked={values.tos} />
+          Accept TOS
+        </label>
+      </div>
+      <button type="submit">Sign up!</button>
     </Form>
   );
 }
 const FormikOnboarding = withFormik({
-  mapPropsToValues({ name, email, password }) {
+  mapPropsToValues({ name, email, password, tos }) {
     return {
       name: name || "",
       email: email || "",
@@ -42,13 +51,17 @@ const FormikOnboarding = withFormik({
       .required("Email is required for sign up"),
     password: Yup.string()
       .min(6, "Password must be 6 characters or longer")
-      .required("Password is required for sign up")
+      .required("Password is required for sign up"),
+    tos: Yup.boolean()
+      .oneOf([true], "Please acknowledge our TOS")
+      .required("You must accept TOS to register")
   }),
-  handleSubmit(values, { resetForm, setErrors, setSubmitting }) {
+  handleSubmit(values, { resetForm, setErrors, setStatus, setSubmitting }) {
     axios
       .post("https://reqres.in/api/users", values)
       .then(res => {
-        console.log(res);
+        console.log(res.data);
+        setStatus(res.data);
         resetForm();
         setSubmitting(false);
       })
